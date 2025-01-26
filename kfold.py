@@ -81,9 +81,24 @@ def kfold_cross_validation(X: np.ndarray, y: np.ndarray, k: int) -> List[Tuple[n
     n_samples = X.shape[0]
     fold_size = n_samples // k
     folds = []  # Container to store the results of each fold
+    
+    indices = np.arange(n_samples)
+    np.random.shuffle(indices)
 
-    # TODO: implement kfold split. Hints: use `for` Python loop and list slicing.
-    raise NotImplementedError
+    for i in range(k):
+        start = i * fold_size
+        end = (i + 1) * fold_size if i != k - 1 else n_samples
+        
+        # Split the data into training and testing sets
+        test_indices = indices[start:end]
+        train_indices = np.setdiff1d(indices, test_indices)
+
+        X_train, X_test = X[train_indices], X[test_indices]
+        y_train, y_test = y[train_indices], y[test_indices]
+
+        folds.append((X_train, y_train, X_test, y_test))
+    
+    return folds
 
 
 def evaluate_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -96,8 +111,9 @@ def evaluate_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     Returns:
         float: Accuracy score.
     """
-    # TODO: implement accuracy score
-    raise NotImplementedError
+    correct_predictions = np.sum(y_true == y_pred)
+    total_predictions = len(y_true)
+    return correct_predictions / total_predictions
 
 
 def main() -> None:
@@ -118,20 +134,31 @@ def main() -> None:
     y_test = testing_data.iloc[:, 0].values
     print("Test data:", X_test.shape, y_test.shape)
 
-    k = 1  # NOTE: not the best choice for k
+    k = 4
     print(f" KNN with k = {k}")
 
     num_folds = 5
+    fold_accuracies = []
     # Perform k-fold cross-validation
     for X_train, y_train, X_val, y_val in kfold_cross_validation(X, y, k=num_folds):
         model = KNN(k=k)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_val, verbose=True)
         accuracy = evaluate_accuracy(y_val, y_pred)
+        fold_accuracies.append(accuracy)
         print(f"Accuracy: {round(accuracy, 2)}")
 
-    # TODO: compute accuracy on test data and compare results with cross-validation scores
+    # Average cross-validation accuracy
+    avg_accuracy = np.mean(fold_accuracies)
+    accuracy = avg_accuracy
+    print(f"Average cross-validation accuracy for k={k}: {round(avg_accuracy, 2)}")
 
+    # Test accuracy on the test dataset
+    model = KNN(k=k)
+    model.fit(X, y)
+    y_pred_test = model.predict(X_test)
+    test_accuracy = evaluate_accuracy(y_test, y_pred_test)
+    print(f"Test accuracy for k={k}: {round(test_accuracy, 2)}")
 
 if __name__ == "__main__":
     main()
